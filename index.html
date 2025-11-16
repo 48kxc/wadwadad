@@ -1,158 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI Study Buddy — WebLLM (fixed)</title>
+  <meta charset="UTF-8" />
+  <title>Local WebLLM Toolkit</title>
+  <script type="module">
+    import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+    let engine = null;
+
+    async function loadModel() {
+      document.getElementById("status").textContent = "Loading model...";
+      engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC");
+      document.getElementById("status").textContent = "Model loaded.";
+    }
+
+    async function run(prompt) {
+      if (!engine) return "Model not loaded!";
+      const reply = await engine.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 300,
+      });
+      return reply.choices[0].message.content;
+    }
+
+    // CHAT SECTION
+    async function sendChat() {
+      const input = document.getElementById("chatInput").value;
+      const log = document.getElementById("chatLog");
+
+      if (!input.trim()) return;
+
+      log.value += "You: " + input + "\n\n";
+
+      const response = await run(input);
+
+      log.value += "AI: " + response + "\n\n";
+      log.scrollTop = log.scrollHeight;
+      document.getElementById("chatInput").value = "";
+    }
+
+    // ESSAY
+    async function writeEssay() {
+      const topic = document.getElementById("essayTopic").value;
+      document.getElementById("essayOutput").value = "Thinking...";
+      const response = await run(`Write a full essay about: ${topic}`);
+      document.getElementById("essayOutput").value = response;
+    }
+
+    // PARAGRAPH
+    async function writeParagraph() {
+      const topic = document.getElementById("paraTopic").value;
+      document.getElementById("paraOutput").value = "Thinking...";
+      const response = await run(`Write one detailed paragraph about: ${topic}`);
+      document.getElementById("paraOutput").value = response;
+    }
+
+    // SHORT ANSWER
+    async function shortAnswer() {
+      const q = document.getElementById("shortQ").value;
+      document.getElementById("shortOutput").value = "Thinking...";
+      const response = await run(`Answer briefly: ${q}`);
+      document.getElementById("shortOutput").value = response;
+    }
+
+    window.loadModel = loadModel;
+    window.sendChat = sendChat;
+    window.writeEssay = writeEssay;
+    window.writeParagraph = writeParagraph;
+    window.shortAnswer = shortAnswer;
+  </script>
+
   <style>
-    body{font-family:Inter,system-ui,Arial; background:#f3f7ff; margin:0; padding:24px; display:flex;justify-content:center}
-    .card{width:100%;max-width:820px;background:#fff;padding:20px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.06)}
-    h1{margin:0 0 8px 0}
-    textarea{width:100%;min-height:120px;border-radius:8px;border:1px solid #d0d7ff;padding:10px;font-size:15px}
-    .controls{display:flex;gap:8px;margin-top:12px;align-items:center}
-    button{padding:12px 14px;border-radius:10px;border:0;background:#4a66ff;color:#fff;font-weight:600;cursor:pointer}
-    #status{font-size:13px;color:#444}
-    #output{white-space:pre-wrap;margin-top:14px;line-height:1.45}
-    .small{font-size:13px;color:#6b7280}
+    body { font-family: Arial; background: #111; color: #eee; padding: 20px; }
+    textarea, input { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 6px; }
+    button { padding: 10px 20px; background: #333; border: none; color: #fff; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #555; }
+    .card { background: #1a1a1a; padding: 20px; border-radius: 10px; margin-top: 20px; }
+    h2 { margin-top: 0; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>AI Study Buddy 📚</h1>
-    <div class="small">Runs models directly in your browser with WebLLM (no API keys). First load may take time.</div>
 
-    <label style="display:block;margin-top:12px">Enter topic</label>
-    <textarea id="topic" placeholder="e.g. Mitosis, The French Revolution, Photosynthesis..."></textarea>
+<h1>WebLLM Toolbox</h1>
+<button onclick="loadModel()">Load Model</button>
+<div id="status" style="margin-top:10px;color:#0f0;"></div>
 
-    <div class="controls">
-      <button id="generateBtn" disabled>Generate (model not loaded)</button>
-      <select id="modelSelect" title="Choose model (availability depends on WebLLM config)" style="padding:8px;border-radius:8px">
-        <!-- Default choice. You can change to a prebuilt model name available in your WebLLM config -->
-        <option value="Phi-3-mini-4k-instruct-q4f16_1-MLC">Phi-3-mini-4k-instruct (small)</option>
-        <option value="Llama-3.1-8B-Instruct">Llama-3.1-8B-Instruct (larger)</option>
-      </select>
+<!-- CHAT AREA -->
+<div class="card">
+  <h2>Chat</h2>
+  <textarea id="chatLog" rows="10" readonly></textarea><br><br>
+  <input id="chatInput" placeholder="Type a message...">
+  <button onclick="sendChat()">Send</button>
+</div>
 
-      <div id="status">Status: waiting to load library...</div>
-    </div>
+<!-- ESSAY WRITER -->
+<div class="card">
+  <h2>Essay Writer</h2>
+  <input id="essayTopic" placeholder="Enter essay topic...">
+  <button onclick="writeEssay()">Generate Essay</button>
+  <textarea id="essayOutput" rows="6"></textarea>
+</div>
 
-    <div id="output"></div>
-  </div>
+<!-- PARAGRAPH WRITER -->
+<div class="card">
+  <h2>Paragraph Writer</h2>
+  <input id="paraTopic" placeholder="Enter paragraph topic...">
+  <button onclick="writeParagraph()">Generate Paragraph</button>
+  <textarea id="paraOutput" rows="4"></textarea>
+</div>
 
-<script type="module">
-(async () => {
-  const statusEl = document.getElementById('status');
-  const out = document.getElementById('output');
-  const btn = document.getElementById('generateBtn');
-  const topicEl = document.getElementById('topic');
-  const modelSelect = document.getElementById('modelSelect');
+<!-- SHORT QUESTION ANSWER -->
+<div class="card">
+  <h2>Short Answer</h2>
+  <input id="shortQ" placeholder="Ask a short question...">
+  <button onclick="shortAnswer()">Answer</button>
+  <textarea id="shortOutput" rows="2"></textarea>
+</div>
 
-  let webllm;        // module namespace
-  let engine;        // MLCEngine instance
-
-  // 1) Dynamically import the package (avoids named export mismatch)
-  try {
-    statusEl.textContent = 'Status: loading web-llm library...';
-    // use esm.run (fast) — you may swap to jsdelivr/npm CDN if you prefer
-    webllm = await import('https://esm.run/@mlc-ai/web-llm');
-    statusEl.textContent = 'Status: library loaded.';
-  } catch (err) {
-    console.error('Failed to import web-llm:', err);
-    statusEl.textContent = 'Error: failed to load web-llm library. See console.';
-    out.textContent = 'Check devtools console for import error.';
-    return;
-  }
-
-  // 2) Create MLCEngine using CreateMLCEngine factory (documented API).
-  // See docs: CreateMLCEngine / MLCEngine and engine.chat.completions.create(). :contentReference[oaicite:2]{index=2}
-  async function loadModel(modelName) {
-    try {
-      statusEl.textContent = `Status: initializing engine + loading model "${modelName}" (may take some time)...`;
-      // Use CreateMLCEngine factory if available
-      if (typeof webllm.CreateMLCEngine === 'function') {
-        engine = await webllm.CreateMLCEngine(modelName, {
-          // optional progress callback (gives fraction 0..1)
-          initProgressCallback: (p) => {
-            statusEl.textContent = `Status: loading model "${modelName}" — ${(p*100).toFixed(0)}%`;
-          }
-        });
-      } else if (typeof webllm.MLCEngine === 'function') {
-        // fallback: instantiate and reload
-        engine = new webllm.MLCEngine({
-          initProgressCallback: (p) => {
-            statusEl.textContent = `Status: loading model "${modelName}" — ${(p*100).toFixed(0)}%`;
-          }
-        });
-        await engine.reload(modelName);
-      } else {
-        throw new Error('No CreateMLCEngine or MLCEngine constructor found on imported module.');
-      }
-
-      statusEl.textContent = `Status: model "${modelName}" loaded. Ready!`;
-      btn.disabled = false;
-      btn.textContent = 'Generate Study Materials';
-    } catch (err) {
-      console.error('Model load error:', err);
-      statusEl.textContent = 'Error loading model — see console.';
-      out.textContent = 'Model failed to load. Try a different model or check network/console.';
-    }
-  }
-
-  // Load default model initially (user can change selection and reload below)
-  await loadModel(modelSelect.value);
-
-  // Allow user to change model and reload it
-  modelSelect.addEventListener('change', async () => {
-    btn.disabled = true;
-    btn.textContent = 'Loading model...';
-    out.textContent = '';
-    await loadModel(modelSelect.value);
-  });
-
-  // 3) Generation handler
-  btn.addEventListener('click', async () => {
-    const topic = topicEl.value.trim();
-    if (!topic) { alert('Enter a topic first.'); return; }
-
-    out.textContent = '';
-    statusEl.textContent = 'Status: generating...';
-    btn.disabled = true;
-
-    const prompt = `You are an AI study helper. For the topic "${topic}", produce:
-1) Short summary (5-7 sentences)
-2) 5 flashcards (Q -> A)
-3) 5 multiple-choice practice questions
-4) One short, funny meme sentence about the topic
-Return clear sections with headings.`;
-
-    try {
-      // Use the documented chat completions API:
-      // engine.chat.completions.create({ messages: [...] })
-      // (the engine is preloaded with the chosen model). :contentReference[oaicite:3]{index=3}
-      const messages = [
-        { role: 'system', content: 'You are a helpful study assistant.' },
-        { role: 'user', content: prompt }
-      ];
-
-      const reply = await engine.chat.completions.create({
-        messages,
-        max_tokens: 700,
-        temperature: 0.6
-      });
-
-      // reply.choices[0].message.content is the textual result
-      const text = reply?.choices?.[0]?.message?.content ?? String(reply);
-      out.textContent = text;
-      statusEl.textContent = 'Status: ready';
-    } catch (err) {
-      console.error('Generation error:', err);
-      out.textContent = 'Generation failed — see console for details.';
-      statusEl.textContent = 'Error during generation';
-    } finally {
-      btn.disabled = false;
-    }
-  });
-
-})();
-</script>
 </body>
 </html>
