@@ -15,10 +15,7 @@
       align-items: center;
       color: #222;
     }
-    h1 {
-      margin-top: 30px;
-      text-align: center;
-    }
+    h1 { margin-top: 30px; text-align: center; }
     #card {
       width: 90%;
       max-width: 700px;
@@ -73,52 +70,50 @@
   <div id="output"></div>
 </div>
 
-<!-- Load WebLLM -->
-<script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/dist/web-llm.min.js"></script>
+<!-- Correct WebLLM CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/dist/index.min.js"></script>
 
 <script>
-const outputBox = document.getElementById("output");
-const models = {
-    model: "Phi-3-mini-4k-instruct-q4f16_1-MLC",
-};
-
 let engine;
+const outputBox = document.getElementById("output");
 
-// Load the model once the page opens
+// Load model
 async function loadModel() {
-  outputBox.innerHTML = "⏳ Loading local AI model (1× setup)…";
-  engine = await webllm.createEngine(models);
+  outputBox.innerHTML = "⏳ Loading local AI model…";
+
+  engine = await WebLLM.createEngine({
+    model: "Phi-3-mini-4k-instruct-q4f16_1-MLC"
+  });
+
   outputBox.innerHTML = "✅ Model loaded! Enter a topic.";
 }
 
 loadModel();
 
 async function generate() {
-    const topic = document.getElementById("input").value.trim();
-    if (!topic) return alert("Enter a topic first!");
+  const topic = document.getElementById("input").value.trim();
+  if (!topic) return alert("Enter a topic!");
 
-    outputBox.innerHTML = "🧠 Generating flashcards, summary, quiz…";
+  outputBox.innerHTML = "🧠 Generating study materials…";
 
-    const prompt = `
-You are an AI study helper. For the topic "${topic}", output the following:
+  const prompt = `
+You are an AI study helper. For the topic "${topic}", output:
 
-1. **Short Summary** (5–7 sentences)
-2. **Flashcards** (5 cards, in Q → A format)
-3. **Practice Quiz** (5 multiple choice questions)
-4. **One funny meme sentence** about the topic
+1. Summary (5–7 sentences)
+2. Flashcards (5 Q→A)
+3. Practice quiz (5 MCQs)
+4. One funny meme sentence
 
-Keep everything concise and helpful.
+Make it clean and helpful.
 `;
 
-    const reply = await engine.chat.completions.create({
-      messages: [
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 600
-    });
+  const response = await engine.chatCompletion({
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: 600,
+    temperature: 0.7
+  });
 
-    outputBox.innerHTML = reply.choices[0].message.content;
+  outputBox.innerHTML = response.choices[0].message.content;
 }
 </script>
 
