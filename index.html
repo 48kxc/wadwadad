@@ -1,99 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Local WebLLM Toolkit</title>
-  <script type="module">
-    import * as webllm from "https://esm.run/@mlc-ai/web-llm";
-
-    let engine = null;
-
-    async function loadModel() {
-      document.getElementById("status").textContent = "Loading model...";
-      engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC");
-      document.getElementById("status").textContent = "Model loaded.";
-    }
-
-    async function run(prompt) {
-      if (!engine) return "Model not loaded!";
-      const reply = await engine.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 300,
-      });
-      return reply.choices[0].message.content;
-    }
-
-    // CHAT SECTION
-    async function sendChat() {
-      const input = document.getElementById("chatInput").value;
-      const log = document.getElementById("chatLog");
-
-      if (!input.trim()) return;
-
-      log.value += "You: " + input + "\n\n";
-
-      const response = await run(input);
-
-      log.value += "AI: " + response + "\n\n";
-      log.scrollTop = log.scrollHeight;
-      document.getElementById("chatInput").value = "";
-    }
-
-    // ESSAY
-    async function writeEssay() {
-      const topic = document.getElementById("essayTopic").value;
-      document.getElementById("essayOutput").value = "Thinking...";
-      const response = await run(`Write a full essay about: ${topic}`);
-      document.getElementById("essayOutput").value = response;
-    }
-
-    // PARAGRAPH
-    async function writeParagraph() {
-      const topic = document.getElementById("paraTopic").value;
-      document.getElementById("paraOutput").value = "Thinking...";
-      const response = await run(`Write one detailed paragraph about: ${topic}`);
-      document.getElementById("paraOutput").value = response;
-    }
-
-    // SHORT ANSWER
-    async function shortAnswer() {
-      const q = document.getElementById("shortQ").value;
-      document.getElementById("shortOutput").value = "Thinking...";
-      const response = await run(`Answer briefly: ${q}`);
-      document.getElementById("shortOutput").value = response;
-    }
-
-    window.loadModel = loadModel;
-    window.sendChat = sendChat;
-    window.writeEssay = writeEssay;
-    window.writeParagraph = writeParagraph;
-    window.shortAnswer = shortAnswer;
-  </script>
-
-  <style>
-    body { font-family: Arial; background: #111; color: #eee; padding: 20px; }
-    textarea, input { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 6px; }
-    button { padding: 10px 20px; background: #333; border: none; color: #fff; border-radius: 6px; cursor: pointer; }
-    button:hover { background: #555; }
-    .card { background: #1a1a1a; padding: 20px; border-radius: 10px; margin-top: 20px; }
-    h2 { margin-top: 0; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebLLM Study & Chat Toolkit</title>
+<style>
+  body{font-family: 'Inter',Arial,sans-serif; background:#111; color:#eee; padding:20px; margin:0;}
+  h1{margin:0 0 12px 0; text-align:center;}
+  .controls{display:flex;gap:12px;align-items:center; margin-bottom:20px; justify-content:center;}
+  select, button{padding:10px 14px; border-radius:8px; border:none; cursor:pointer; font-size:14px;}
+  button:hover{background:#555;}
+  .card{background:#1b1b1b; padding:20px; border-radius:12px; margin-bottom:20px; box-shadow:0 6px 20px rgba(0,0,0,0.5);}
+  textarea,input{width:100%; background:#222; color:#fff; border:1px solid #444; padding:10px; border-radius:6px; resize:none;}
+  textarea{margin-top:8px;}
+  label{margin-top:8px; display:block;}
+  .small{font-size:13px; color:#6b7280;}
+</style>
 </head>
 <body>
 
-<h1>WebLLM Toolbox</h1>
-<button onclick="loadModel()">Load Model</button>
-<div id="status" style="margin-top:10px;color:#0f0;"></div>
+<h1>WebLLM Study & Chat Toolkit</h1>
 
-<!-- CHAT AREA -->
+<div class="controls">
+  <select id="modelSelect">
+    <option value="Phi-3-mini-4k-instruct-q4f16_1-MLC">Phi-3-mini-4k-instruct (small)</option>
+    <option value="Llama-3.1-8B-Instruct">Llama-3.1-8B-Instruct (larger)</option>
+  </select>
+  <button id="loadModelBtn">Load Model</button>
+  <span id="status" class="small">Model not loaded</span>
+</div>
+
 <div class="card">
   <h2>Chat</h2>
-  <textarea id="chatLog" rows="10" readonly></textarea><br><br>
+  <textarea id="chatLog" rows="10" readonly></textarea>
   <input id="chatInput" placeholder="Type a message...">
   <button onclick="sendChat()">Send</button>
 </div>
 
-<!-- ESSAY WRITER -->
 <div class="card">
   <h2>Essay Writer</h2>
   <input id="essayTopic" placeholder="Enter essay topic...">
@@ -101,7 +44,6 @@
   <textarea id="essayOutput" rows="6"></textarea>
 </div>
 
-<!-- PARAGRAPH WRITER -->
 <div class="card">
   <h2>Paragraph Writer</h2>
   <input id="paraTopic" placeholder="Enter paragraph topic...">
@@ -109,13 +51,101 @@
   <textarea id="paraOutput" rows="4"></textarea>
 </div>
 
-<!-- SHORT QUESTION ANSWER -->
 <div class="card">
   <h2>Short Answer</h2>
   <input id="shortQ" placeholder="Ask a short question...">
   <button onclick="shortAnswer()">Answer</button>
   <textarea id="shortOutput" rows="2"></textarea>
 </div>
+
+<script type="module">
+import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+let engine=null;
+let currentModel = null;
+
+const statusEl = document.getElementById("status");
+const chatLog = document.getElementById("chatLog");
+
+async function loadModel() {
+  const modelName = document.getElementById("modelSelect").value;
+  statusEl.textContent = `Loading model "${modelName}"...`;
+  try {
+    engine = await webllm.CreateMLCEngine(modelName, {
+      initProgressCallback: p=>{
+        statusEl.textContent = `Loading ${modelName}: ${(p*100).toFixed(0)}%`;
+      }
+    });
+    statusEl.textContent = `Model "${modelName}" loaded`;
+    currentModel = modelName;
+  } catch(e) {
+    console.error(e);
+    statusEl.textContent = 'Failed to load model';
+  }
+}
+
+document.getElementById("loadModelBtn").addEventListener("click",loadModel);
+
+async function runPrompt(prompt) {
+  if(!engine) return "Model not loaded!";
+  let fullResponse="";
+  let lastPrompt=prompt;
+  while(true){
+    try{
+      const reply = await engine.chat.completions.create({
+        messages:[{role:"user", content:lastPrompt}],
+        max_tokens:600,
+        temperature:0.7
+      });
+      let text = reply?.choices?.[0]?.message?.content ?? "";
+      fullResponse += text;
+      // if text seems cut off, continue
+      if(/(\.|\n|$)/.test(text[text.length-1])) break;
+      lastPrompt="Continue from: "+text;
+    }catch(e){
+      console.error(e);
+      fullResponse+="\n[Error generating more]";
+      break;
+    }
+  }
+  return fullResponse;
+}
+
+// CHAT
+window.sendChat=async()=>{
+  const input=document.getElementById("chatInput").value;
+  if(!input.trim())return;
+  chatLog.value += "You: "+input+"\n\n";
+  document.getElementById("chatInput").value="";
+  const response=await runPrompt(input);
+  chatLog.value += "AI: "+response+"\n\n";
+  chatLog.scrollTop=chatLog.scrollHeight;
+}
+
+// ESSAY
+window.writeEssay=async()=>{
+  const topic=document.getElementById("essayTopic").value;
+  document.getElementById("essayOutput").value="Generating...";
+  const res=await runPrompt(`Write a detailed essay on: ${topic}`);
+  document.getElementById("essayOutput").value=res;
+}
+
+// PARAGRAPH
+window.writeParagraph=async()=>{
+  const topic=document.getElementById("paraTopic").value;
+  document.getElementById("paraOutput").value="Generating...";
+  const res=await runPrompt(`Write a detailed paragraph on: ${topic}`);
+  document.getElementById("paraOutput").value=res;
+}
+
+// SHORT ANSWER
+window.shortAnswer=async()=>{
+  const q=document.getElementById("shortQ").value;
+  document.getElementById("shortOutput").value="Generating...";
+  const res=await runPrompt(`Answer briefly: ${q}`);
+  document.getElementById("shortOutput").value=res;
+}
+</script>
 
 </body>
 </html>
