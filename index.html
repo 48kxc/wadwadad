@@ -23,8 +23,12 @@
 
 <div class="controls">
   <select id="modelSelect">
-    <option value="Phi-3-mini-4k-instruct-q4f16_1-MLC">Phi-3-mini-4k-instruct (small)</option>
-    <option value="Llama-3.1-8B-Instruct">Llama-3.1-8B-Instruct (larger)</option>
+    <option value="Phi-3-mini-4k-instruct-q4f16_1-MLC">Phi‑3 Mini (small)</option>
+    <option value="Phi-3-small-4k-instruct-q4f16_1-MLC">Phi‑3 Small</option>
+    <option value="Phi-3-medium-4k-instruct-q4f16_1-MLC">Phi‑3 Medium</option>
+    <option value="Phi-2-q4f16_1-MLC">Phi‑2</option>
+    <option value="Phi-1_5-q4f16_1-MLC">Phi‑1.5</option>
+    <option value="Phi-3.5-vision-instruct-q4f16_1-MLC">Phi‑3.5 Vision</option>
   </select>
   <button id="loadModelBtn">Load Model</button>
   <span id="status" class="small">Model not loaded</span>
@@ -63,7 +67,6 @@ import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
 let engine=null;
 let currentModel = null;
-
 const statusEl = document.getElementById("status");
 const chatLog = document.getElementById("chatLog");
 
@@ -99,7 +102,7 @@ async function runPrompt(prompt) {
       });
       let text = reply?.choices?.[0]?.message?.content ?? "";
       fullResponse += text;
-      // if text seems cut off, continue
+      // continue if it seems cut off
       if(/(\.|\n|$)/.test(text[text.length-1])) break;
       lastPrompt="Continue from: "+text;
     }catch(e){
