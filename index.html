@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Study Buddy</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f7ff;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #222;
+    }
+    h1 {
+      margin-top: 30px;
+      text-align: center;
+    }
+    #card {
+      width: 90%;
+      max-width: 700px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      border-radius: 10px;
+      border: 2px solid #bbb;
+      padding: 10px;
+      font-size: 16px;
+      resize: none;
+      margin-top: 10px;
+    }
+    button {
+      width: 100%;
+      margin-top: 15px;
+      padding: 15px;
+      background: #4a66ff;
+      color: white;
+      border: none;
+      font-size: 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #3d54d8;
+    }
+    #output {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<h1>AI Study Buddy 📚</h1>
+
+<div id="card">
+  <label>Enter any topic:</label>
+  <textarea id="input"></textarea>
+
+  <button onclick="generate()">Generate Study Materials</button>
+
+  <div id="output"></div>
+</div>
+
+<!-- Load WebLLM -->
+<script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/dist/web-llm.min.js"></script>
+
+<script>
+const outputBox = document.getElementById("output");
+const models = {
+    model: "Phi-3-mini-4k-instruct-q4f16_1-MLC",
+};
+
+let engine;
+
+// Load the model once the page opens
+async function loadModel() {
+  outputBox.innerHTML = "⏳ Loading local AI model (1× setup)…";
+  engine = await webllm.createEngine(models);
+  outputBox.innerHTML = "✅ Model loaded! Enter a topic.";
+}
+
+loadModel();
+
+async function generate() {
+    const topic = document.getElementById("input").value.trim();
+    if (!topic) return alert("Enter a topic first!");
+
+    outputBox.innerHTML = "🧠 Generating flashcards, summary, quiz…";
+
+    const prompt = `
+You are an AI study helper. For the topic "${topic}", output the following:
+
+1. **Short Summary** (5–7 sentences)
+2. **Flashcards** (5 cards, in Q → A format)
+3. **Practice Quiz** (5 multiple choice questions)
+4. **One funny meme sentence** about the topic
+
+Keep everything concise and helpful.
+`;
+
+    const reply = await engine.chat.completions.create({
+      messages: [
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 600
+    });
+
+    outputBox.innerHTML = reply.choices[0].message.content;
+}
+</script>
+
+</body>
+</html>
