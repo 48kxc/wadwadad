@@ -71,25 +71,23 @@
 </div>
 
 <script type="module">
-import * as WebLLM from "https://esm.run/@mlc-ai/web-llm";
+import { ChatModule } from "https://esm.run/@mlc-ai/web-llm";
 
-// UI refs
-let engine;
+let chat;
 const outputBox = document.getElementById("output");
 
-// Load the model
 async function loadModel() {
-  outputBox.innerHTML = "⏳ Loading local AI model… (first load takes ~20s)";
+  outputBox.innerHTML = "⏳ Loading local AI model…";
 
-  engine = await WebLLM.createEngine({
+  chat = await ChatModule.create({
     model: "Phi-3-mini-4k-instruct-q4f16_1-MLC"
   });
 
   outputBox.innerHTML = "✅ Model loaded! Enter a topic.";
 }
+
 loadModel();
 
-// Generate content
 window.generate = async function () {
   const topic = document.getElementById("input").value.trim();
   if (!topic) return alert("Enter a topic!");
@@ -102,18 +100,17 @@ You are an AI study helper. For the topic "${topic}", output:
 1. Summary (5–7 sentences)
 2. Flashcards (5 Q→A)
 3. Practice quiz (5 multiple choice questions)
-4. A funny meme sentence
+4. One funny meme sentence
 
-Make it clear and useful.
+Make it helpful and clean.
 `;
 
-  const response = await engine.chatCompletion({
-    messages: [{ role: "user", content: prompt }],
-    max_tokens: 600,
-    temperature: 0.7
+  const reply = await chat.generate(prompt, {
+    temperature: 0.7,
+    max_tokens: 600
   });
 
-  outputBox.innerHTML = response.choices[0].message.content;
+  outputBox.innerHTML = reply;
 };
 </script>
 
