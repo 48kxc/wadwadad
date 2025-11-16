@@ -5,16 +5,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WebLLM Study & Chat Toolkit</title>
 <style>
-  body{font-family: 'Inter',Arial,sans-serif; background:#111; color:#eee; padding:20px; margin:0;}
-  h1{margin:0 0 12px 0; text-align:center;}
-  .controls{display:flex;gap:12px;align-items:center; margin-bottom:20px; justify-content:center;}
-  select, button{padding:10px 14px; border-radius:8px; border:none; cursor:pointer; font-size:14px;}
-  button:hover{background:#555;}
-  .card{background:#1b1b1b; padding:20px; border-radius:12px; margin-bottom:20px; box-shadow:0 6px 20px rgba(0,0,0,0.5);}
-  textarea,input{width:100%; background:#222; color:#fff; border:1px solid #444; padding:10px; border-radius:6px; resize:none;}
+  body{
+    font-family: 'Inter', Arial, sans-serif; 
+    background:#f0f4f8; 
+    color:#111; 
+    padding:20px; 
+    margin:0;
+  }
+  h1{
+    margin:0 0 12px 0; 
+    text-align:center; 
+    color:#1e40af;
+  }
+  .controls{
+    display:flex;
+    gap:12px;
+    align-items:center; 
+    margin-bottom:20px; 
+    justify-content:center;
+  }
+  select, button{
+    padding:10px 14px; 
+    border-radius:8px; 
+    border:none; 
+    cursor:pointer; 
+    font-size:14px;
+  }
+  select{background:#fff; color:#111; border:1px solid #cbd5e1;}
+  button{
+    background:#1e40af; 
+    color:#fff;
+  }
+  button:hover{background:#2563eb;}
+  .card{
+    background:#ffffff; 
+    padding:20px; 
+    border-radius:12px; 
+    margin-bottom:20px; 
+    box-shadow:0 6px 20px rgba(0,0,0,0.1);
+  }
+  textarea,input{
+    width:100%; 
+    background:#f1f5f9; 
+    color:#111; 
+    border:1px solid #cbd5e1; 
+    padding:10px; 
+    border-radius:6px; 
+    resize:none;
+  }
   textarea{margin-top:8px;}
-  label{margin-top:8px; display:block;}
-  .small{font-size:13px; color:#6b7280;}
+  .small{font-size:13px; color:#64748b;}
 </style>
 </head>
 <body>
@@ -23,12 +63,8 @@
 
 <div class="controls">
   <select id="modelSelect">
-    <option value="Phi-3-mini-4k-instruct-q4f16_1-MLC">Phi‑3 Mini (small)</option>
-    <option value="Phi-3-small-4k-instruct-q4f16_1-MLC">Phi‑3 Small</option>
-    <option value="Phi-3-medium-4k-instruct-q4f16_1-MLC">Phi‑3 Medium</option>
-    <option value="Phi-2-q4f16_1-MLC">Phi‑2</option>
-    <option value="Phi-1_5-q4f16_1-MLC">Phi‑1.5</option>
-    <option value="Phi-3.5-vision-instruct-q4f16_1-MLC">Phi‑3.5 Vision</option>
+    <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen2.5-mini</option>
+    <option value="Phi-3-mini-4k-instruct-q4f16_1-MLC">Phi‑3 Mini</option>
   </select>
   <button id="loadModelBtn">Load Model</button>
   <span id="status" class="small">Model not loaded</span>
@@ -66,43 +102,40 @@
 import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
 let engine=null;
-let currentModel = null;
-const statusEl = document.getElementById("status");
-const chatLog = document.getElementById("chatLog");
+const statusEl=document.getElementById("status");
+const chatLog=document.getElementById("chatLog");
 
-async function loadModel() {
-  const modelName = document.getElementById("modelSelect").value;
-  statusEl.textContent = `Loading model "${modelName}"...`;
-  try {
-    engine = await webllm.CreateMLCEngine(modelName, {
-      initProgressCallback: p=>{
-        statusEl.textContent = `Loading ${modelName}: ${(p*100).toFixed(0)}%`;
+async function loadModel(){
+  const modelName=document.getElementById("modelSelect").value;
+  statusEl.textContent=`Loading model "${modelName}"...`;
+  try{
+    engine=await webllm.CreateMLCEngine(modelName,{
+      initProgressCallback:p=>{
+        statusEl.textContent=`Loading ${modelName}: ${(p*100).toFixed(0)}%`;
       }
     });
-    statusEl.textContent = `Model "${modelName}" loaded`;
-    currentModel = modelName;
-  } catch(e) {
+    statusEl.textContent=`Model "${modelName}" loaded`;
+  }catch(e){
     console.error(e);
-    statusEl.textContent = 'Failed to load model';
+    statusEl.textContent='Failed to load model';
   }
 }
 
 document.getElementById("loadModelBtn").addEventListener("click",loadModel);
 
-async function runPrompt(prompt) {
+async function runPrompt(prompt){
   if(!engine) return "Model not loaded!";
   let fullResponse="";
   let lastPrompt=prompt;
   while(true){
     try{
-      const reply = await engine.chat.completions.create({
+      const reply=await engine.chat.completions.create({
         messages:[{role:"user", content:lastPrompt}],
         max_tokens:600,
         temperature:0.7
       });
-      let text = reply?.choices?.[0]?.message?.content ?? "";
-      fullResponse += text;
-      // continue if it seems cut off
+      let text=reply?.choices?.[0]?.message?.content ?? "";
+      fullResponse+=text;
       if(/(\.|\n|$)/.test(text[text.length-1])) break;
       lastPrompt="Continue from: "+text;
     }catch(e){
@@ -117,11 +150,11 @@ async function runPrompt(prompt) {
 // CHAT
 window.sendChat=async()=>{
   const input=document.getElementById("chatInput").value;
-  if(!input.trim())return;
-  chatLog.value += "You: "+input+"\n\n";
+  if(!input.trim()) return;
+  chatLog.value+="You: "+input+"\n\n";
   document.getElementById("chatInput").value="";
   const response=await runPrompt(input);
-  chatLog.value += "AI: "+response+"\n\n";
+  chatLog.value+="AI: "+response+"\n\n";
   chatLog.scrollTop=chatLog.scrollHeight;
 }
 
